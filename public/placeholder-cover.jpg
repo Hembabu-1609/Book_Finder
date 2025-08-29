@@ -1,0 +1,4 @@
+# Placeholder Cover Image
+# This file represents a placeholder book cover image
+# In a real implementation, you would have an actual JPG image here
+# The application will fall back to this placeholder when book covers are not available

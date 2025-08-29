@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 480">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#e0f2fe"/>
+      <stop offset="1" stop-color="#f5d0fe"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="480" fill="url(#g)"/>
+  <g fill="#0ea5e9" opacity="0.6">
+    <rect x="60" y="120" width="240" height="12" rx="6"/>
+    <rect x="60" y="150" width="210" height="10" rx="5"/>
+    <rect x="60" y="190" width="240" height="160" rx="12" fill="#fff" opacity="0.7"/>
+    <rect x="60" y="370" width="160" height="10" rx="5"/>
+    <rect x="60" y="390" width="210" height="10" rx="5"/>
+  </g>
+  <g transform="translate(150 220)" fill="#94a3b8">
+    <path d="M10 0h40a8 8 0 0 1 8 8v92H18a8 8 0 0 1-8-8V0z"/>
+    <rect x="0" y="8" width="48" height="8" rx="4" fill="#0ea5e9"/>
+  </g>
+  <text x="50%" y="95%" dominant-baseline="middle" text-anchor="middle" font-size="14" fill="#64748b">No cover available</text>
+</svg>

@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Book Finder — Open Library Search</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --muted:#98a0b3;
+    --accent:#6ee7b7;
+    --glass: rgba(255,255,255,0.03);
+    --glass-2: rgba(255,255,255,0.02);
+    --danger:#ff6b6b;
+    --max-width:1100px;
+    font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background: linear-gradient(180deg,#031028 0%, #071226 60%);
+    color:#e6eef6;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding:28px;
+    display:flex;
+    justify-content:center;
+  }
+  .app{
+    width:100%;
+    max-width:var(--max-width);
+  }
+
+  header{
+    display:flex;
+    gap:18px;
+    align-items:center;
+    margin-bottom:18px;
+  }
+  .logo{
+    background:linear-gradient(90deg,var(--accent),#60a5fa);
+    color:#021018;
+    padding:10px 14px;
+    border-radius:10px;
+    font-weight:700;
+    letter-spacing:0.6px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  }
+  .logo small{font-weight:600; font-size:12px; color:#07202a}
+  h1{margin:0; font-size:18px}
+  .subtitle{color:var(--muted); font-size:13px}
+
+  .controls{
+    margin-top:14px;
+    background:var(--glass);
+    padding:14px;
+    border-radius:12px;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+
+  .searchbox{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex:1 1 420px;
+  }
+  input[type="search"], input[type="text"], input[type="number"], select {
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.06);
+    padding:10px 12px;
+    color:inherit;
+    border-radius:8px;
+    outline:none;
+    min-width:0;
+  }
+  input[type="search"]::placeholder{color:var(--muted)}
+  button{
+    background:linear-gradient(180deg,var(--accent),#4cc7a4);
+    border:0;
+    padding:10px 12px;
+    border-radius:8px;
+    color:#021018;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(6,21,34,0.45);
+  }
+  button.ghost{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.06);
+    color:var(--accent);
+    font-weight:600;
+  }
+  .adv{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    color:var(--muted);
+  }
+  .main{
+    display:grid;
+    grid-template-columns: 1fr 320px;
+    gap:18px;
+    margin-top:18px;
+  }
+  .results{
+    background:var(--glass-2);
+    padding:14px;
+    border-radius:12px;
+    min-height:300px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
+    gap:12px;
+  }
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:10px;
+    padding:10px;
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  .cover{
+    width:64px;
+    height:96px;
+    background:#071427;
+    border-radius:6px;
+    overflow:hidden;
+    flex-shrink:0;
+    box-shadow:0 6px 12px rgba(0,0,0,0.5);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--muted);
+    font-size:12px;
+  }
+  .info{flex:1}
+  .title{font-weight:700; font-size:14px; margin-bottom:6px}
+  .meta{font-size:12px; color:var(--muted)}
+  .actions{display:flex; gap:8px; margin-top:8px}
+  .smallbtn{
+    padding:6px 8px;
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.04);
+    border-radius:8px;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:13px;
+  }
+
+  aside.sidebar{
+    background:var(--card);
+    border-radius:12px;
+    padding:12px;
+    min-height:300px;
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  .sidebar h3{margin-top:0}
+  .fav-list{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto;padding-right:6px}
+  .fav-item{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px}
+
+  .pager{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:12px}
+  .help{color:var(--muted);font-size:13px;margin-top:8px}
+
+  /* modal */
+  .modal{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(2,6,23,0.6);
+    z-index:80;
+    padding:20px;
+  }
+  .modal.open{display:flex}
+  .sheet{
+    width:100%;
+    max-width:900px;
+    background:linear-gradient(180deg,#061024,#071020);
+    border-radius:12px;
+    padding:18px;
+    color:inherit;
+    box-shadow: 0 18px 50px rgba(2,6,23,0.8);
+    max-height:85vh;
+    overflow:auto;
+  }
+  .sheet .row{display:flex;gap:16px}
+  .sheet .col-left{width:160px}
+  .sheet img{width:160px;height:240px;object-fit:cover;border-radius:8px}
+  .sheet h2{margin:0 0 6px 0}
+  .sheet .muted{color:var(--muted)}
+  .sheet .subjects{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .chip{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:999px;font-size:12px;color:var(--muted)}
+
+  /* responsive */
+  @media (max-width:980px){
+    .main{grid-template-columns:1fr}
+    aside.sidebar{order:2}
+  }
+  footer{margin-top:18px;color:var(--muted);font-size:13px; text-align:center}
+  .kbd{background:#071522;border-radius:6px;padding:3px 6px;font-size:12px;color:var(--muted)}
+  .empty{color:var(--muted);padding:30px;text-align:center;border:1px dashed rgba(255,255,255,0.03);border-radius:10px}
+</style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Book Finder using Open Library API">
+    <header>
+      <div class="logo" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6h12v12H4z" fill="#021018" opacity="0.25"/><path d="M3 5c1.2-1 3.8-1 6 0s4 3.2 4 5v8" stroke="#021018" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div>
+          <div style="font-size:14px">Book Finder</div>
+          <small>Open Library search</small>
+        </div>
+      </div>
+      <div style="flex:1">
+        <h1>Book Finder — quick, clean search for books</h1>
+        <div class="subtitle">Search by title, author, ISBN. Save favorites for later. Hotkeys: <span class="kbd">/</span> focus, <span class="kbd">F</span> focus, <span class="kbd">?</span> help</div>
+      </div>
+      <div>
+        <button id="helpBtn" class="ghost" title="Help">?</button>
+      </div>
+    </header>
+
+    <div class="controls" role="region" aria-label="Search controls">
+      <form id="searchForm" class="searchbox" autocomplete="off" onsubmit="return false;">
+        <input id="q" type="search" placeholder="Search by title (e.g. 'Pride and Prejudice')" aria-label="Search title" />
+        <input id="author" type="text" placeholder="Author (optional)" aria-label="Author" />
+        <input id="isbn" type="text" placeholder="ISBN (optional)" aria-label="ISBN" style="width:140px" />
+        <button id="searchBtn" type="submit">Search</button>
+      </form>
+
+      <div class="adv" aria-hidden="false">
+        <label style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;color:var(--muted)">Year</span>
+          <input id="yearMin" type="number" placeholder="min" style="width:80px" />
+          <input id="yearMax" type="number" placeholder="max" style="width:80px" />
+        </label>
+        <button id="clearBtn" class="ghost" title="Clear filters">Clear</button>
+        <button id="exportBtn" class="ghost" title="Export favorites">Export ⋯</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <section class="results" aria-live="polite" aria-busy="false">
+        <div id="status" class="help" role="status">Type a title and press Enter or click Search</div>
+        <div id="grid" class="grid" style="margin-top:12px"></div>
+
+        <div class="pager" id="pager" hidden>
+          <button id="prevPage" class="smallbtn">Prev</button>
+          <div id="pageInfo" class="muted">Page 1</div>
+          <button id="nextPage" class="smallbtn">Next</button>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <h3>Favorites</h3>
+        <div class="fav-list" id="favList" aria-live="polite"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="clearFavs" class="smallbtn">Clear favorites</button>
+          <button id="importBtn" class="smallbtn">Import</button>
+        </div>
+
+        <div style="margin-top:14px">
+          <h4 style="margin:6px 0 8px 0">Tips</h4>
+          <div class="help">Try searching exact title, or add author to refine. Use ISBN for precise match.</div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>
+      Built for Alex • Uses Open Library Search API • <span id="credits" class="muted"></span>
+    </footer>
+  </div>
+
+  <!-- modal -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="sheet" role="document">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong id="modalTitle">Book details</strong>
+        <div>
+          <button id="modalClose" class="smallbtn">Close</button>
+        </div>
+      </div>
+      <div id="modalBody">
+        <!-- dynamically filled -->
+      </div>
+    </div>
+  </div>
+
+<script>
+/*
+  Book Finder (single-file)
+  - Uses Open Library Search API: https://openlibrary.org/search.json
+  - Covers: https://covers.openlibrary.org/b/id/{coverId}-M.jpg
+*/
+
+const MAX_RESULTS_PER_PAGE = 20;
+
+const state = {
+  q: '',
+  author: '',
+  isbn: '',
+  page: 1,
+  numFound: 0,
+  docs: [],
+  favorites: loadFavorites(),
+  lastQueryUrl: '',
+};
+
+// DOM refs
+const qInput = document.getElementById('q');
+const authorInput = document.getElementById('author');
+const isbnInput = document.getElementById('isbn');
+const yearMinInput = document.getElementById('yearMin');
+const yearMaxInput = document.getElementById('yearMax');
+const searchBtn = document.getElementById('searchBtn');
+const clearBtn = document.getElementById('clearBtn');
+const exportBtn = document.getElementById('exportBtn');
+const grid = document.getElementById('grid');
+const status = document.getElementById('status');
+const pager = document.getElementById('pager');
+const prevPage = document.getElementById('prevPage');
+const nextPage = document.getElementById('nextPage');
+const pageInfo = document.getElementById('pageInfo');
+const favList = document.getElementById('favList');
+const clearFavs = document.getElementById('clearFavs');
+const importBtn = document.getElementById('importBtn');
+const modal = document.getElementById('modal');
+const modalBody = document.getElementById('modalBody');
+const modalTitle = document.getElementById('modalTitle');
+const modalClose = document.getElementById('modalClose');
+const helpBtn = document.getElementById('helpBtn');
+
+function safeText(s){ return s ? String(s) : '' }
+
+function buildSearchUrl({ q, author, isbn, page }){
+  const base = 'https://openlibrary.org/search.json';
+  const params = new URLSearchParams();
+  if (q) params.set('title', q);
+  if (author) params.set('author', author);
+  if (isbn) params.set('isbn', isbn);
+  params.set('page', String(page || 1));
+  params.set('limit', String(MAX_RESULTS_PER_PAGE));
+  // include fields we often use (reduce payload)
+  params.set('fields', 'title,author_name,first_publish_year,cover_i,edition_key,isbn,subject,publisher,language,seed,key,ia');
+  return base + '?' + params.toString();
+}
+
+async function doSearch(options = {}){
+  // update state from UI if called without override
+  state.q = options.q !== undefined ? options.q : qInput.value.trim();
+  state.author = options.author !== undefined ? options.author : authorInput.value.trim();
+  state.isbn = options.isbn !== undefined ? options.isbn : isbnInput.value.trim();
+  state.page = options.page || state.page || 1;
+
+  // apply year filter client-side later
+  const url = buildSearchUrl({ q: state.q, author: state.author, isbn: state.isbn, page: state.page });
+  state.lastQueryUrl = url;
+  if (!state.q && !state.author && !state.isbn){
+    status.textContent = 'Please enter at least a title, author, or ISBN to search.';
+    grid.innerHTML = '';
+    pager.hidden = true;
+    return;
+  }
+
+  // UI feedback
+  status.textContent = 'Searching…';
+  document.querySelector('.results').setAttribute('aria-busy','true');
+
+  try{
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Search failed: ' + res.status);
+    const data = await res.json();
+    state.numFound = data.numFound || 0;
+    state.docs = (data.docs || []).slice(0, MAX_RESULTS_PER_PAGE);
+
+    // client-side year filter
+    const minY = parseInt(yearMinInput.value) || -Infinity;
+    const maxY = parseInt(yearMaxInput.value) || Infinity;
+    const filteredDocs = state.docs.filter(d => {
+      const y = d.first_publish_year || 0;
+      return y >= minY && y <= maxY;
+    });
+    renderResults(filteredDocs);
+    status.textContent = `Found ${state.numFound} result${state.numFound===1?'':'s'} — showing page ${state.page}.`;
+    pager.hidden = false;
+    pageInfo.textContent = `Page ${state.page} • ${state.numFound} results`;
+    prevPage.disabled = state.page <= 1;
+    nextPage.disabled = state.page * MAX_RESULTS_PER_PAGE >= state.numFound;
+  }catch(err){
+    console.error(err);
+    status.textContent = 'Error while searching: ' + err.message;
+    grid.innerHTML = '';
+    pager.hidden = true;
+  }finally{
+    document.querySelector('.results').setAttribute('aria-busy','false');
+  }
+}
+
+function renderResults(docs){
+  grid.innerHTML = '';
+  if (!docs || docs.length === 0){
+    grid.innerHTML = '<div class="empty">No results. Try different keywords or remove filters.</div>';
+    return;
+  }
+  for (const doc of docs){
+    const card = document.createElement('div');
+    card.className = 'card';
+    const cover = document.createElement('div');
+    cover.className = 'cover';
+    const coverImg = document.createElement('img');
+    const coverId = doc.cover_i;
+    if (coverId){
+      coverImg.src = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+      coverImg.alt = doc.title;
+      coverImg.style.width='100%';
+      cover.appendChild(coverImg);
+    } else {
+      // try isbn cover
+      const isbn = (doc.isbn && doc.isbn[0]) ? doc.isbn[0] : null;
+      if (isbn){
+        const url = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+        coverImg.src = url;
+        coverImg.alt = doc.title;
+        coverImg.style.width='100%';
+        cover.appendChild(coverImg);
+      } else {
+        cover.innerHTML = '<div style="padding:6px;text-align:center;color:var(--muted);font-size:12px">No cover</div>';
+      }
+    }
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    const title = document.createElement('div');
+    title.className = 'title';
+    title.textContent = doc.title || 'Untitled';
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = (doc.author_name ? doc.author_name.join(', ') : 'Unknown author') + (doc.first_publish_year ? ' • ' + doc.first_publish_year : '');
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    const detailBtn = document.createElement('button');
+    detailBtn.className = 'smallbtn';
+    detailBtn.textContent = 'Details';
+    detailBtn.addEventListener('click', () => openModal(doc));
+
+    const favBtn = document.createElement('button');
+    favBtn.className = 'smallbtn';
+    favBtn.innerHTML = isFavorited(doc) ? 'Unsave' : 'Save';
+    favBtn.addEventListener('click', () => {
+      toggleFavorite(doc);
+      favBtn.innerHTML = isFavorited(doc) ? 'Unsave' : 'Save';
+      renderFavorites();
+    });
+
+    actions.appendChild(detailBtn);
+    actions.appendChild(favBtn);
+
+    info.appendChild(title);
+    info.appendChild(meta);
+    info.appendChild(actions);
+
+    card.appendChild(cover);
+    card.appendChild(info);
+    grid.appendChild(card);
+  }
+}
+
+function openModal(doc){
+  modalTitle.textContent = doc.title || 'Book details';
+  modalBody.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'row';
+  const left = document.createElement('div');
+  left.className = 'col-left';
+  const img = document.createElement('img');
+  if (doc.cover_i) img.src = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+  else if (doc.isbn && doc.isbn[0]) img.src = `https://covers.openlibrary.org/b/isbn/${doc.isbn[0]}-L.jpg`;
+  else img.src = '';
+  img.alt = doc.title || '';
+  left.appendChild(img);
+
+  const right = document.createElement('div');
+  right.style.flex='1';
+
+  const h2 = document.createElement('h2');
+  h2.textContent = doc.title || 'Untitled';
+  const authors = document.createElement('div');
+  authors.className='muted';
+  authors.textContent = doc.author_name ? doc.author_name.join(', ') : 'Unknown author';
+  const pub = document.createElement('div');
+  pub.className='muted';
+  pub.textContent = doc.publisher ? 'Publisher: ' + (Array.isArray(doc.publisher)?doc.publisher.slice(0,3).join(', '):doc.publisher) : '';
+  const year = document.createElement('div');
+  year.className='muted';
+  year.textContent = doc.first_publish_year ? 'First publish year: ' + doc.first_publish_year : '';
+
+  const subjects = document.createElement('div');
+  subjects.className='subjects';
+  if (doc.subject){
+    for (const s of doc.subject.slice(0,12)){
+      const c = document.createElement('div');
+      c.className='chip';
+      c.textContent = s;
+      subjects.appendChild(c);
+    }
+  }
+
+  const links = document.createElement('div');
+  links.style.marginTop='12px';
+  const olUrl = doc.key ? `https://openlibrary.org${doc.key}` : null;
+  const openBtn = document.createElement('a');
+  openBtn.className='smallbtn';
+  openBtn.textContent = 'Open in Open Library';
+  openBtn.href = olUrl || '#';
+  openBtn.target = '_blank';
+  openBtn.rel = 'noopener noreferrer';
+
+  const citeBtn = document.createElement('button');
+  citeBtn.className = 'smallbtn';
+  citeBtn.textContent = 'Copy citation';
+  citeBtn.addEventListener('click', () => {
+    const cite = `${doc.title}${doc.author_name ? ' — ' + doc.author_name.join(', ') : ''}${doc.first_publish_year ? ', ' + doc.first_publish_year : ''}`;
+    navigator.clipboard?.writeText(cite).then(()=> alert('Copied citation')) .catch(()=> alert('Unable to copy'));
+  });
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className='smallbtn';
+  saveBtn.textContent = isFavorited(doc) ? 'Unsave' : 'Save';
+  saveBtn.addEventListener('click', ()=>{
+    toggleFavorite(doc);
+    saveBtn.textContent = isFavorited(doc) ? 'Unsave' : 'Save';
+    renderFavorites();
+  });
+
+  links.appendChild(openBtn);
+  links.appendChild(citeBtn);
+  links.appendChild(saveBtn);
+
+  right.appendChild(h2);
+  right.appendChild(authors);
+  right.appendChild(pub);
+  right.appendChild(year);
+  if (doc.subject && doc.subject.length) {
+    const subjTitle = document.createElement('div');
+    subjTitle.style.marginTop='10px';
+    subjTitle.style.color='var(--muted)';
+    subjTitle.textContent = 'Subjects:';
+    right.appendChild(subjTitle);
+    right.appendChild(subjects);
+  }
+  right.appendChild(links);
+
+  row.appendChild(left);
+  row.appendChild(right);
+
+  // Optional description - we may fetch edition data for more, but keep lightweight
+  const descWrap = document.createElement('div');
+  descWrap.style.marginTop = '12px';
+  descWrap.className = 'muted';
+  descWrap.textContent = doc.first_sentence ? (Array.isArray(doc.first_sentence)?doc.first_sentence[0]:doc.first_sentence) : '';
+
+  modalBody.appendChild(row);
+  modalBody.appendChild(descWrap);
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  modal.querySelector('.sheet').focus?.();
+}
+
+// favorites
+function idForDoc(doc){
+  // use first edition_key or key as identifier
+  if (doc.key) return doc.key;
+  if (doc.edition_key && doc.edition_key[0]) return doc.edition_key[0];
+  return (doc.title || '') + '::' + (doc.first_publish_year || '0');
+}
+function loadFavorites(){
+  try{
+    const v = localStorage.getItem('bookfinder.favs');
+    return v ? JSON.parse(v) : [];
+  }catch(e){ return [] }
+}
+function saveFavorites(){
+  localStorage.setItem('bookfinder.favs', JSON.stringify(state.favorites));
+}
+function isFavorited(doc){
+  const id = idForDoc(doc);
+  return state.favorites.some(f=>f._id === id);
+}
+function toggleFavorite(doc){
+  const id = idForDoc(doc);
+  const idx = state.favorites.findIndex(f=>f._id === id);
+  if (idx >= 0){
+    state.favorites.splice(idx,1);
+  } else {
+    const item = {
+      _id: id,
+      title: doc.title,
+      authors: doc.author_name || [],
+      cover_i: doc.cover_i || null,
+      key: doc.key || null,
+      year: doc.first_publish_year || null
+    };
+    state.favorites.unshift(item);
+  }
+  saveFavorites();
+}
+function renderFavorites(){
+  favList.innerHTML = '';
+  if (!state.favorites || state.favorites.length===0){
+    favList.innerHTML = '<div class="empty">No favorites yet — save books to see them here.</div>';
+    return;
+  }
+  for (const f of state.favorites){
+    const div = document.createElement('div');
+    div.className = 'fav-item';
+    const img = document.createElement('img');
+    img.style.width='40px';
+    img.style.height='60px';
+    img.style.objectFit='cover';
+    img.style.borderRadius='4px';
+    if (f.cover_i) img.src = `https://covers.openlibrary.org/b/id/${f.cover_i}-S.jpg`;
+    else img.src = '';
+    img.alt = f.title;
+    const meta = document.createElement('div');
+    meta.style.flex='1';
+    meta.innerHTML = `<div style="font-weight:700;font-size:13px">${escapeHtml(f.title)}</div><div style="color:var(--muted);font-size:12px">${(f.authors||[]).slice(0,2).join(', ')} ${f.year? ' • ' + f.year : ''}</div>`;
+    const open = document.createElement('button');
+    open.className='smallbtn';
+    open.textContent='Open';
+    open.addEventListener('click', ()=>{
+      const url = f.key ? `https://openlibrary.org${f.key}` : '#';
+      window.open(url, '_blank', 'noopener');
+    });
+    const rem = document.createElement('button');
+    rem.className='smallbtn';
+    rem.textContent='Remove';
+    rem.addEventListener('click', ()=>{
+      const idx = state.favorites.findIndex(x=>x._id === f._id);
+      if (idx>=0){ state.favorites.splice(idx,1); saveFavorites(); renderFavorites(); }
+    });
+    div.appendChild(img);
+    div.appendChild(meta);
+    div.appendChild(open);
+    div.appendChild(rem);
+    favList.appendChild(div);
+  }
+}
+
+// utilities
+function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+
+// events
+searchBtn.addEventListener('click', ()=>{ state.page=1; doSearch({page:1}); });
+clearBtn.addEventListener('click', ()=>{
+  qInput.value=''; authorInput.value=''; isbnInput.value=''; yearMinInput.value=''; yearMaxInput.value='';
+  state.page=1; state.numFound=0; grid.innerHTML=''; status.textContent='Cleared.'; pager.hidden=true;
+});
+exportBtn.addEventListener('click', ()=>{
+  if (!state.favorites || state.favorites.length===0){ alert('No favorites to export'); return; }
+  const data = JSON.stringify(state.favorites, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'bookfinder-favorites.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+prevPage.addEventListener('click', ()=>{
+  if (state.page > 1){ state.page--; doSearch({page: state.page}); }
+});
+nextPage.addEventListener('click', ()=>{
+  state.page++; doSearch({page: state.page});
+});
+clearFavs.addEventListener('click', ()=>{
+  if (confirm('Clear all favorites?')){ state.favorites=[]; saveFavorites(); renderFavorites(); }
+});
+importBtn.addEventListener('click', ()=>{
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = e=>{
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = evt=>{
+      try{
+        const arr = JSON.parse(evt.target.result);
+        if (!Array.isArray(arr)) throw new Error('Invalid file');
+        // map items in file as favorites
+        for (const it of arr){
+          if (!it._id) continue;
+          if (!state.favorites.some(x=>x._id === it._id)) state.favorites.push(it);
+        }
+        saveFavorites(); renderFavorites();
+        alert('Imported favorites');
+      }catch(err){ alert('Failed to import: ' + err.message) }
+    };
+    reader.readAsText(f);
+  };
+  input.click();
+});
+
+// modal handlers
+modalClose.addEventListener('click', closeModal);
+modal.addEventListener('click', (e)=>{
+  if (e.target === modal) closeModal();
+});
+document.addEventListener('keydown', (e)=>{
+  if ((e.key === 'Escape' || e.key === 'Esc') && modal.classList.contains('open')) closeModal();
+  // hotkeys
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){
+    e.preventDefault(); qInput.focus(); qInput.select();
+  }
+  if (e.key.toLowerCase() === 'f' && document.activeElement.tagName !== 'INPUT'){
+    qInput.focus();
+  }
+  if (e.key === '?' && document.activeElement.tagName !== 'INPUT'){
+    showHelp();
+  }
+});
+
+// help
+helpBtn.addEventListener('click', showHelp);
+function showHelp(){
+  alert(
+`Book Finder — Help
+Hotkeys:
+  / or F -> focus search
+  ? -> show help
+Controls:
+  - Enter or Search: search by title (use author or ISBN to refine)
+  - Save: save a result to Favorites (stored in localStorage)
+  - Export/Import: export favorites as JSON / import JSON
+Notes:
+  - Search uses Open Library Search API.
+  - Covers may not exist for older titles; fallback shown.
+`);
+}
+
+// close modal
+function closeModal(){
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+}
+
+// quick debounce for typing
+let typingTimer = null;
+[qInput, authorInput, isbnInput].forEach(inp=>{
+  inp.addEventListener('input', ()=>{
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(()=> {
+      state.page = 1;
+      doSearch({page:1});
+    }, 600);
+  });
+});
+
+// handle Enter to search quickly
+document.getElementById('searchForm').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  state.page = 1;
+  doSearch({page:1});
+});
+
+// initial render
+renderFavorites();
+document.getElementById('credits').textContent = 'Data © Open Library';
+
+// helper: try to keep UI usable when offline
+window.addEventListener('online', ()=> status.textContent = 'Online');
+window.addEventListener('offline', ()=> status.textContent = 'You appear offline.');
+
+// small accessibility helper
+qInput.setAttribute('aria-label','Search for book titles');
+authorInput.setAttribute('aria-label','Author name');
+isbnInput.setAttribute('aria-label','ISBN number');
+
+// Utility: try initial search from URL params if provided
+(function tryInitFromParams(){
+  try{
+    const params = new URLSearchParams(location.search);
+    const title = params.get('title') || params.get('q');
+    const author = params.get('author');
+    const isbn = params.get('isbn');
+    if (title) qInput.value = title;
+    if (author) authorInput.value = author;
+    if (isbn) isbnInput.value = isbn;
+    if (title || author || isbn) {
+      state.page = parseInt(params.get('page')) || 1;
+      doSearch({page: state.page});
+    }
+  }catch(e){}
+})();
+
+</script>
+</body>
+</html>
